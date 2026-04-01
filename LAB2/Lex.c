@@ -1,21 +1,7 @@
 #include <stdio.h>
-#include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
-
-const char Operators[6] = {'+','-','*','/','%','='};
-
-const char Delimiters[20] = {
-    ' ','+','-','*','/','%','=',',',';',
-    '[',']','{','}','(',')','<','>','&','|','!'
-};
-
-/* multi-length operators */
-const char* OtherOperators[] = {
-    "==","!=","<=",">=","++","--","&&","||",
-    "+=","-=","*=","/=","%=","&=","|=","^=",
-    "<<=",">>=","->"
-};
+#include <stdbool.h>
 
 const char* keywords[] = {
     "auto","break","case","char","const","continue","default","do",
@@ -24,19 +10,11 @@ const char* keywords[] = {
     "struct","switch","typedef","union","unsigned","void","volatile","while"
 };
 
-/* operator check */
-bool isOperator(char ch){
-    for(int i=0;i<6;i++)
-        if(ch==Operators[i]) return true;
-    return false;
-}
-
-/* delimiter check */
-bool isDelimiter(char ch){
-    for(int i=0;i<19;i++)
-        if(ch==Delimiters[i]) return true;
-    return false;
-}
+const char* OtherOperators[] = {
+    "==","!=","<=",">=","++","--","&&","||",
+    "+=","-=","*=","/=","%=","&=","|=","^=",
+    "<<=",">>=","->"
+};
 
 /* keyword check */
 bool isKeyword(char *str){
@@ -45,75 +23,77 @@ bool isKeyword(char *str){
     return false;
 }
 
-/* identifier check */
-bool isValidIdentifier(char *str){
-    return (isalpha(str[0]) || str[0]=='_');
-}
+/* classify token */
+int classify(char *str){
+    int dot = 0;
 
-/* integer check */
-bool isInteger(char *str){
-    for(int i=0;str[i]!='\0';i++)
-        if(!isdigit(str[i])) return false;
-    return true;
-}
+    if(isKeyword(str)) return 1;
 
-/* float check */
-bool isFloat(char *str){
-    int dot=0;
-    for(int i=0;str[i]!='\0';i++){
+    for(int i=0; str[i]; i++){
         if(str[i]=='.') dot++;
-        else if(!isdigit(str[i])) return false;
+        else if(!isdigit(str[i])){
+            if(i==0 && (isalpha(str[i]) || str[i]=='_'))
+                return 4;
+            return 5;
+        }
     }
-    return dot==1;
+
+    if(dot==1) return 3;
+    if(dot==0) return 2;
+
+    return 5;
 }
 
-/* multi-operator check */
-bool isOtherOperator(char *str){
+/* match multi-char operators */
+int matchOperator(char *str){
     for(int i=0;i<19;i++){
-        int len=strlen(OtherOperators[i]);
-        if(strncmp(str,OtherOperators[i],len)==0)
-            return true;
+        int len = strlen(OtherOperators[i]);
+        if(strncmp(str, OtherOperators[i], len)==0)
+            return len;
     }
-    return false;
+    return 0;
+}
+
+void printToken(char *token){
+    if(strlen(token)==0) return;
+
+    switch(classify(token)){
+        case 1: printf("%s : Keyword\n",token); break;
+        case 2: printf("%s : Number\n",token); break;
+        case 3: printf("%s : Float\n",token); break;
+        case 4: printf("%s : Identifier\n",token); break;
+        default: printf("%s : Invalid Identifier\n",token);
+    }
 }
 
 void analyzeCode(char *str){
     char token[200];
     int j=0;
 
-    for(int i=0; str[i]!='\0'; i++){
+    for(int i=0; str[i]; i++){
 
-        /* handle preprocessor */
+        /* preprocessor */
         if(str[i]=='#'){
             printf("#include : Preprocessor Directive\n");
             break;
         }
 
-        if(str[i] == '\n' || str[i] == '\t')
-            continue;
+        if(str[i]=='\n' || str[i]=='\t') continue;
 
-        /* string literal */
-        if(str[i]=='"'){
+        /* string / char literal */
+        if(str[i]=='"' || str[i]=='\''){
+            char quote = str[i];
             j=0;
             token[j++]=str[i++];
-            while(str[i] && (str[i]!='"' || str[i-1]=='\\'))
-                token[j++]=str[i++];
-            token[j++]='"';
-            token[j]='\0';
-            printf("%s : String Literal\n",token);
-            j=0;
-            continue;
-        }
 
-        /* char literal */
-        if(str[i]=='\''){
-            j=0;
-            token[j++]=str[i++];
-            while(str[i] && (str[i]!='\'' || str[i-1]=='\\'))
+            while(str[i] && (str[i]!=quote || str[i-1]=='\\'))
                 token[j++]=str[i++];
-            token[j++]='\'';
+
+            token[j++]=quote;
             token[j]='\0';
-            printf("%s : Character Literal\n",token);
+
+            printf("%s : %s Literal\n", token,
+                   quote=='"' ? "String" : "Character");
             j=0;
             continue;
         }
@@ -123,6 +103,7 @@ void analyzeCode(char *str){
             printf("// : Single-line Comment\n");
             break;
         }
+
         if(str[i]=='/' && str[i+1]=='*'){
             printf("/* */ : Multi-line Comment\n");
             i+=2;
@@ -132,43 +113,22 @@ void analyzeCode(char *str){
         }
 
         /* multi operators */
-        if(isOtherOperator(&str[i])){
-            for(int k=0;k<19;k++){
-                int len=strlen(OtherOperators[k]);
-                if(strncmp(&str[i],OtherOperators[k],len)==0){
-                    printf("%s : Operator\n",OtherOperators[k]);
-                    i+=len-1;
-                    break;
-                }
-            }
+        int len = matchOperator(&str[i]);
+        if(len){
+            printf("%.*s : Operator\n", len, &str[i]);
+            i += len - 1;
             continue;
         }
 
-        /* delimiter handling */
-        if(isDelimiter(str[i])){
+        /* delimiter */
+        if(strchr(" +-*/%=,;[]{}()<> &|!", str[i])){
             if(j>0){
                 token[j]='\0';
-
-                if(strlen(token)==0){
-                    j=0;
-                    continue;
-                }
-
-                if(isKeyword(token))
-                    printf("%s : Keyword\n",token);
-                else if(isFloat(token))
-                    printf("%s : Float\n",token);
-                else if(isInteger(token))
-                    printf("%s : Number\n",token);
-                else if(isValidIdentifier(token))
-                    printf("%s : Identifier\n",token);
-                else
-                    printf("%s : Invalid Identifier\n",token);
-
+                printToken(token);
                 j=0;
             }
 
-            if(isOperator(str[i]))
+            if(strchr("+-*/%=", str[i]))
                 printf("%c : Operator\n",str[i]);
             else if(str[i]!=' ')
                 printf("%c : Delimiter\n",str[i]);
@@ -182,37 +142,22 @@ void analyzeCode(char *str){
     /* last token */
     if(j>0){
         token[j]='\0';
-
-        if(strlen(token)==0)
-            return;
-
-        if(isKeyword(token))
-            printf("%s : Keyword\n",token);
-        else if(isFloat(token))
-            printf("%s : Float\n",token);
-        else if(isInteger(token))
-            printf("%s : Number\n",token);
-        else if(isValidIdentifier(token))
-            printf("%s : Identifier\n",token);
-        else
-            printf("%s : Invalid Identifier\n",token);
+        printToken(token);
     }
 }
 
-int main()
-{
+int main(){
     FILE* file = fopen("Input.txt", "r");
     char line[256];
     int i=1;
 
-    if (file != NULL) {
-        while (fgets(line, sizeof(line), file)) {
+    if(file){
+        while(fgets(line, sizeof(line), file)){
             printf("\n--- Line %d ---\n", i++);
             analyzeCode(line);
         }
         fclose(file);
-    }
-    else {
+    } else {
         printf("Error: Unable to open file!\n");
     }
 
