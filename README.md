@@ -13,7 +13,6 @@
 | LAB4   | Comment Removal using LEX | Implementation of a LEX program to remove single-line (`//`) and multi-line (`/* */`) comments from a C source file and generate a clean output file while preserving formatting and structure. |
 | LABn | TBD | To be updated |
 
-
 ---
 
 ### Author
