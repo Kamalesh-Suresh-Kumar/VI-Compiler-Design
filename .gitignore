@@ -3,13 +3,23 @@
 *.out
 *.a
 
-# Ignore object files
-*.o
-.csv
-
 # Ignore VS Code settings
 .vscode/
 
 # Ignore OS generated files
 .DS_Store
 Thumbs.db
+
+# YACC/Bison generated
+y.tab.c
+y.tab.h
+*.output
+
+# Lex/Flex generated
+lex.yy.c
+
+# Object files
+*.o
+
+# Temporary / logs
+*.log
