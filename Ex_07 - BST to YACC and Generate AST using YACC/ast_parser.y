@@ -14,7 +14,6 @@ struct node *root = NULL;
 struct node* createNumNode(int val);
 struct node* createOpNode(char op, struct node *l, struct node *r);
 void preorder(struct node *t);
-void inorder(struct node *t);
 
 int yylex(void);
 void yyerror(const char *s);
@@ -40,10 +39,6 @@ input:
           root = $1;
           printf("\nPreorder: ");
           preorder(root);
-
-          printf("\nInorder: ");
-          inorder(root);
-          printf("\n");
           return 0;
       }
     ;
@@ -86,19 +81,6 @@ void preorder(struct node *t)
 
         preorder(t->left);
         preorder(t->right);
-    }
-}
-
-void inorder(struct node *t)
-{
-    if(t)
-    {
-        inorder(t->left);
-
-        if(t->op == 'N') printf("%d ", t->val);
-        else printf("%c ", t->op);
-
-        inorder(t->right);
     }
 }
 
